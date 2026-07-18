@@ -14,12 +14,14 @@ interface UploadedFile {
   progress: number;
   status: 'uploading' | 'processing' | 'completed' | 'error';
   violations?: number;
+  location?: string;
 }
 
 export default function VideoUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [location, setLocation] = useState('');
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -31,6 +33,12 @@ export default function VideoUploadPage() {
   };
 
   const processFiles = (fileList: FileList) => {
+    // Validate location is provided
+    if (!location.trim()) {
+      alert('Please enter the location where the video was recorded');
+      return;
+    }
+
     Array.from(fileList).forEach((file) => {
       // Validate file type
       if (!file.type.startsWith('video/')) {
@@ -51,6 +59,7 @@ export default function VideoUploadPage() {
         size: file.size,
         progress: 0,
         status: 'uploading',
+        location: location,
       };
 
       setFiles((prev) => [...prev, newFile]);
@@ -164,6 +173,63 @@ export default function VideoUploadPage() {
         <p className="text-gray-600">Submit helmet violation videos for analysis</p>
       </div>
 
+      {/* Location Input */}
+      <Card className="border-0 shadow bg-white">
+        <CardHeader>
+          <CardTitle className="text-lg">Video Location</CardTitle>
+          <CardDescription>Manually enter the location where the violation was recorded</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="location" className="block text-sm font-medium text-gray-900 mb-2">
+                Violation Location <span className="text-red-600">*</span>
+              </label>
+              <Input
+                id="location"
+                type="text"
+                placeholder="e.g., EDSA near BGC, Taguig | Commonwealth Avenue, QC | Mactan-Cebu International Airport"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Be specific (include street name, landmarks, city, or intersection)
+              </p>
+            </div>
+
+            {/* Common Locations Suggestions */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">Common Locations:</p>
+              <div className="flex flex-wrap gap-2">
+                {['EDSA, Makati', 'BGC, Taguig', 'Commonwealth Ave, QC', 'Mactan-Cebu', 'Davao City'].map(
+                  (loc) => (
+                    <Button
+                      key={loc}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLocation(loc)}
+                      className="text-xs border-gray-300 hover:bg-orange-50 hover:border-orange-300"
+                    >
+                      {loc}
+                    </Button>
+                  )
+                )}
+              </div>
+            </div>
+
+            {location && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800">
+                  <span className="font-medium">Selected Location:</span> {location}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Upload Area */}
       <Card className="border-0 shadow">
         <CardContent className="pt-6">
@@ -242,6 +308,11 @@ export default function VideoUploadPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">{file.name}</p>
                         <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
+                        {file.location && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            <span className="font-medium">Location:</span> {file.location}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex-shrink-0">{getStatusBadge(file.status)}</div>

@@ -234,6 +234,7 @@ Content-Type: multipart/form-data
 
 Request:
 - video: File (multipart upload, max 500MB)
+- location: string (required, e.g., "EDSA, Makati" or "BGC, Taguig")
 - description: string (optional)
 
 Response (202):
@@ -242,6 +243,7 @@ Response (202):
   "status": "processing",
   "fileName": "violation_video_123.mp4",
   "fileSize": 45000000,
+  "location": "EDSA, Makati",
   "processingUrl": "/videos/processing/upload-789"
 }
 ```
@@ -256,13 +258,15 @@ Response (200):
   "uploadId": "upload-789",
   "status": "processing" | "completed" | "failed",
   "progress": 75,
+  "location": "EDSA, Makati",
   "violations": [
     {
       "id": "VIO-2024-002",
       "timestamp": "00:15:30",
       "riderCount": 2,
       "helmetlessCount": 1,
-      "confidence": 0.92
+      "confidence": 0.92,
+      "location": "EDSA, Makati"
     }
   ],
   "error": null
