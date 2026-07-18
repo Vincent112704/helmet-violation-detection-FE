@@ -40,11 +40,15 @@ A comprehensive traffic enforcement management application for automated helmet 
   - Sortable columns
 
 ### 📹 Video Upload
+- **Manual Location Entry** - Officers must manually enter the violation location (required field)
+- Quick-select common location buttons (EDSA Makati, BGC Taguig, Commonwealth Ave, etc.)
+- Custom location text input for flexibility
+- Location validation and display
 - Drag-and-drop video upload interface
 - Support for MP4, MOV, AVI, MKV formats
 - Max file size: 500 MB
 - Simulated upload progress tracking
-- Violation detection results display
+- Violation detection results display with location
 - Actions for review and ticket creation
 
 ### 📋 Data Privacy Compliance
