@@ -6,6 +6,7 @@ export const METHODS = z.enum([
   "POST",
   "PUT",
   "DELETE",
+  "PATCH"
 ]);
 
 export const TicketStatus = z.enum([
@@ -14,4 +15,4 @@ export const TicketStatus = z.enum([
   "false_alarm",
 ]);
 
-export type methods = z.infer<typeof METHODS>;
+export type Methods = z.infer<typeof METHODS>;
