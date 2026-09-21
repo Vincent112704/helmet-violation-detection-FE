@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { mockViolations, Violation } from '@/lib/mock-data';
+import { Ticket } from '../../../schema/violations';
 import {
   AlertTriangle,
   Search,
@@ -14,28 +14,41 @@ import {
   Clock,
   AlertCircle,
 } from 'lucide-react';
+import { useTickets } from '../../hooks/useTicket';
+import { Spinner } from '../../../components/ui/spinner';
+import { ErrorMessage } from '../../../components/ui/errorMessage';
 
-type SortField = 'timestamp' | 'status' | 'plateNumber';
+type SortField = 'timestamp' | 'status' | 'plate_number';
 type SortOrder = 'asc' | 'desc';
 
 export default function ViolationsPage() {
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(10);
+
+  const { status, data, error, refetch } = useTickets(page, pageSize);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('timestamp');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [selectedViolation, setSelectedViolation] = useState<Violation | null>(null);
+  const [selectedViolation, setSelectedViolation] = useState<Ticket | null>(null);
 
-  // Filter and sort violations
+  const tickets = data?.data.items ?? [];
+
+
+
+  // Filter and sort tickets
   const filteredViolations = useMemo(() => {
-    let result = mockViolations;
+    let result = tickets;
 
     // Search
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       result = result.filter(
         (v) =>
-          v.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          v.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          v.officerName.toLowerCase().includes(searchTerm.toLowerCase())
+          (v.plate_number ?? '').toLowerCase().includes(term) ||
+          v.location.toLowerCase().includes(term)
+        // officer is a UUID here, not a name — see note below on search-by-officer
       );
     }
 
@@ -45,15 +58,15 @@ export default function ViolationsPage() {
     }
 
     // Sort
-    result.sort((a, b) => {
-      let aVal, bVal;
+    result = [...result].sort((a, b) => {
+      let aVal: string | number, bVal: string | number;
 
       if (sortField === 'timestamp') {
         aVal = new Date(a.timestamp).getTime();
         bVal = new Date(b.timestamp).getTime();
-      } else if (sortField === 'plateNumber') {
-        aVal = a.plateNumber;
-        bVal = b.plateNumber;
+      } else if (sortField === 'plate_number') {
+        aVal = a.plate_number ?? '';
+        bVal = b.plate_number ?? '';
       } else {
         aVal = a.status;
         bVal = b.status;
@@ -67,17 +80,19 @@ export default function ViolationsPage() {
     });
 
     return result;
-  }, [searchTerm, filterStatus, sortField, sortOrder]);
+  }, [tickets, searchTerm, filterStatus, sortField, sortOrder]);
 
+  // NOTE: these status values are placeholders (see message below) —
+  // swap in your real TicketStatus enum values here
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'verified':
+      case 'CONFIRMED':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'pending_review':
+      case 'PENDING':
         return <Clock className="w-4 h-4 text-yellow-600" />;
-      case 'ticket_issued':
+      case 'RESOLVED':
         return <AlertCircle className="w-4 h-4 text-blue-600" />;
-      case 'appealed':
+      case 'FALSE_ALARM':
         return <AlertTriangle className="w-4 h-4 text-red-600" />;
       default:
         return null;
@@ -86,14 +101,14 @@ export default function ViolationsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'verified':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Verified</Badge>;
-      case 'pending_review':
+      case 'CONFIRMED':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Confirmed</Badge>;
+      case 'PENDING':
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
-      case 'ticket_issued':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Ticket Issued</Badge>;
-      case 'appealed':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Appealed</Badge>;
+      case 'RESOLVED':
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Resolved</Badge>;
+      case 'FALSE_ALARM':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">False Alarm</Badge>;
       default:
         return null;
     }
@@ -124,7 +139,7 @@ export default function ViolationsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
               <Input
-                placeholder="Search by plate number, location, or officer name..."
+                placeholder="Search by plate number or location..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -142,36 +157,36 @@ export default function ViolationsPage() {
                 All
               </Button>
               <Button
-                variant={filterStatus === 'pending_review' ? 'default' : 'outline'}
+                variant={filterStatus === 'PENDING' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterStatus('pending_review')}
-                className={filterStatus === 'pending_review' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                onClick={() => setFilterStatus('PENDING')}
+                className={filterStatus === 'PENDING' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
               >
-                Pending Review
+                Pending
               </Button>
               <Button
-                variant={filterStatus === 'verified' ? 'default' : 'outline'}
+                variant={filterStatus === 'CONFIRMED' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterStatus('verified')}
-                className={filterStatus === 'verified' ? 'bg-green-600 hover:bg-green-700' : ''}
+                onClick={() => setFilterStatus('CONFIRMED')}
+                className={filterStatus === 'CONFIRMED' ? 'bg-green-600 hover:bg-green-700' : ''}
               >
-                Verified
+                Confirmed
               </Button>
               <Button
-                variant={filterStatus === 'ticket_issued' ? 'default' : 'outline'}
+                variant={filterStatus === 'RESOLVED' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterStatus('ticket_issued')}
-                className={filterStatus === 'ticket_issued' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                onClick={() => setFilterStatus('RESOLVED')}
+                className={filterStatus === 'RESOLVED' ? 'bg-blue-600 hover:bg-blue-700' : ''}
               >
-                Ticket Issued
+                Resolved
               </Button>
               <Button
-                variant={filterStatus === 'appealed' ? 'default' : 'outline'}
+                variant={filterStatus === 'FALSE_ALARM' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterStatus('appealed')}
-                className={filterStatus === 'appealed' ? 'bg-red-600 hover:bg-red-700' : ''}
+                onClick={() => setFilterStatus('FALSE_ALARM')}
+                className={filterStatus === 'FALSE_ALARM' ? 'bg-red-600 hover:bg-red-700' : ''}
               >
-                Appealed
+                False Alarm
               </Button>
             </div>
           </div>
@@ -180,7 +195,7 @@ export default function ViolationsPage() {
 
       {/* Results Count */}
       <div className="text-sm text-gray-600">
-        Showing {filteredViolations.length} of {mockViolations.length} violations
+        Showing {filteredViolations.length} of {data?.count} violations
       </div>
 
       {/* Table */}
@@ -191,11 +206,11 @@ export default function ViolationsPage() {
               <tr>
                 <th className="px-6 py-3 text-left">
                   <button
-                    onClick={() => toggleSort('plateNumber')}
+                    onClick={() => toggleSort('plate_number')}
                     className="text-xs font-semibold text-gray-600 hover:text-gray-900 uppercase tracking-wider flex items-center gap-1"
                   >
                     Plate Number
-                    {sortField === 'plateNumber' && (
+                    {sortField === 'plate_number' && (
                       <span className="text-orange-600">{sortOrder === 'asc' ? '↑' : '↓'}</span>
                     )}
                   </button>
@@ -235,13 +250,19 @@ export default function ViolationsPage() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredViolations.map((violation) => (
-                <tr key={violation.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={violation.ticket_id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="font-mono font-semibold text-gray-900">{violation.plateNumber}</span>
+                    <span className="font-mono font-semibold text-gray-900">
+                      {violation.plate_number ?? '—'}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{violation.timestamp}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {new Date(violation.timestamp).toLocaleString()}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{violation.location}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{violation.officerName}</td>
+                  <td className="px-6 py-4 text-sm text-gray-600 font-mono text-xs">
+                    {violation.officer}
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(violation.status)}
@@ -266,6 +287,29 @@ export default function ViolationsPage() {
         </div>
       </Card>
 
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={page === 0}
+          onClick={() => setPage((p) => Math.max(0, p - 1))}
+        >
+          Previous
+        </Button>
+        <span className="text-sm text-gray-600">
+          Page {(data?.data.page ?? 0) + 1} · {data?.data.page_size ?? pageSize} per page
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={tickets.length < pageSize}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
+
       {/* Empty State */}
       {filteredViolations.length === 0 && (
         <Card className="border-0 shadow">
@@ -277,16 +321,20 @@ export default function ViolationsPage() {
         </Card>
       )}
 
-      {/* Detail Modal would go here - for now showing selection info */}
+      {/* Detail panel */}
       {selectedViolation && (
         <Card className="border-0 shadow bg-blue-50 border-l-4 border-blue-600">
           <CardContent className="pt-6">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 mb-2">Selected for review:</p>
-                <p className="text-lg font-semibold text-gray-900">{selectedViolation.plateNumber}</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {selectedViolation.plate_number ?? '—'}
+                </p>
                 <p className="text-sm text-gray-600 mt-1">{selectedViolation.location}</p>
-                <p className="text-xs text-gray-500 mt-1">{selectedViolation.timestamp}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {new Date(selectedViolation.timestamp).toLocaleString()}
+                </p>
               </div>
               <Button
                 variant="outline"
