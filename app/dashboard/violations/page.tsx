@@ -15,15 +15,14 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useTickets } from '../../hooks/useTicket';
-import { Spinner } from '../../../components/ui/spinner';
-import { ErrorMessage } from '../../../components/ui/errorMessage';
+
 
 type SortField = 'timestamp' | 'status' | 'plate_number';
 type SortOrder = 'asc' | 'desc';
 
 export default function ViolationsPage() {
   const [page, setPage] = useState(0);
-  const [pageSize] = useState(10);
+  const [pageSize] = useState(5);
 
   const { status, data, error, refetch } = useTickets(page, pageSize);
 
@@ -86,13 +85,11 @@ export default function ViolationsPage() {
   // swap in your real TicketStatus enum values here
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'CONFIRMED':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'PENDING':
+      case 'pending':
         return <Clock className="w-4 h-4 text-yellow-600" />;
-      case 'RESOLVED':
+      case 'issued':
         return <AlertCircle className="w-4 h-4 text-blue-600" />;
-      case 'FALSE_ALARM':
+      case 'false_alarm':
         return <AlertTriangle className="w-4 h-4 text-red-600" />;
       default:
         return null;
@@ -101,13 +98,11 @@ export default function ViolationsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'CONFIRMED':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Confirmed</Badge>;
-      case 'PENDING':
+      case 'pending':
         return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
-      case 'RESOLVED':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Resolved</Badge>;
-      case 'FALSE_ALARM':
+      case 'issued':
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Issued</Badge>;
+      case 'false_alarm':
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">False Alarm</Badge>;
       default:
         return null;
@@ -139,7 +134,7 @@ export default function ViolationsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
               <Input
-                placeholder="Search by plate number or location..."
+                placeholder="Search by plate number"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -157,34 +152,26 @@ export default function ViolationsPage() {
                 All
               </Button>
               <Button
-                variant={filterStatus === 'PENDING' ? 'default' : 'outline'}
+                variant={filterStatus === 'pending' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterStatus('PENDING')}
-                className={filterStatus === 'PENDING' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                onClick={() => setFilterStatus('pending')}
+                className={filterStatus === 'pending' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
               >
                 Pending
               </Button>
               <Button
-                variant={filterStatus === 'CONFIRMED' ? 'default' : 'outline'}
+                variant={filterStatus === 'issued' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterStatus('CONFIRMED')}
-                className={filterStatus === 'CONFIRMED' ? 'bg-green-600 hover:bg-green-700' : ''}
+                onClick={() => setFilterStatus('issued')}
+                className={filterStatus === 'issued' ? 'bg-blue-600 hover:bg-blue-700' : ''}
               >
-                Confirmed
+                Issued
               </Button>
               <Button
-                variant={filterStatus === 'RESOLVED' ? 'default' : 'outline'}
+                variant={filterStatus === 'false_alarm' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setFilterStatus('RESOLVED')}
-                className={filterStatus === 'RESOLVED' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-              >
-                Resolved
-              </Button>
-              <Button
-                variant={filterStatus === 'FALSE_ALARM' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterStatus('FALSE_ALARM')}
-                className={filterStatus === 'FALSE_ALARM' ? 'bg-red-600 hover:bg-red-700' : ''}
+                onClick={() => setFilterStatus('false_alarm')}
+                className={filterStatus === 'false_alarm' ? 'bg-red-600 hover:bg-red-700' : ''}
               >
                 False Alarm
               </Button>
