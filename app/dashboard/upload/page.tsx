@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileVideo, CheckCircle, AlertCircle, Loader } from 'lucide-react';
+import { useVideoUpload, type UploadStatus } from '../../hooks/useVideoUpload';
 
 interface UploadedFile {
   id: string;
@@ -17,11 +18,13 @@ interface UploadedFile {
   location?: string;
 }
 
+
 export default function VideoUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [location, setLocation] = useState('');
+
+  const { files, uploadFiles, removeFile } = useVideoUpload();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -32,94 +35,25 @@ export default function VideoUploadPage() {
     setIsDragging(false);
   };
 
-  const processFiles = (fileList: FileList) => {
-    // Validate location is provided
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
     if (!location.trim()) {
       alert('Please enter the location where the video was recorded');
       return;
     }
-
-    Array.from(fileList).forEach((file) => {
-      // Validate file type
-      if (!file.type.startsWith('video/')) {
-        alert('Please upload video files only');
-        return;
-      }
-
-      // Validate file size (max 500MB)
-      if (file.size > 500 * 1024 * 1024) {
-        alert('File size must be less than 500MB');
-        return;
-      }
-
-      // Create new file entry
-      const newFile: UploadedFile = {
-        id: Date.now().toString() + Math.random(),
-        name: file.name,
-        size: file.size,
-        progress: 0,
-        status: 'uploading',
-        location: location,
-      };
-
-      setFiles((prev) => [...prev, newFile]);
-
-      // Simulate upload progress
-      let progress = 0;
-      const progressInterval = setInterval(() => {
-        progress += Math.random() * 30;
-        if (progress >= 100) {
-          progress = 100;
-          clearInterval(progressInterval);
-
-          // Update to processing
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === newFile.id
-                ? { ...f, progress: 100, status: 'processing' }
-                : f
-            )
-          );
-
-          // Simulate processing and completion
-          setTimeout(() => {
-            setFiles((prev) =>
-              prev.map((f) =>
-                f.id === newFile.id
-                  ? {
-                    ...f,
-                    status: 'completed',
-                    violations: Math.floor(Math.random() * 5),
-                  }
-                  : f
-              )
-            );
-          }, 2000);
-        } else {
-          setFiles((prev) =>
-            prev.map((f) =>
-              f.id === newFile.id ? { ...f, progress } : f
-            )
-          );
-        }
-      }, 500);
-    });
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    processFiles(e.dataTransfer.files);
+    uploadFiles(e.dataTransfer.files, location);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      processFiles(e.target.files);
+    if (!location.trim()) {
+      alert('Please enter the location where the video was recorded');
+      return;
     }
-  };
-
-  const handleRemoveFile = (id: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
+    if (e.target.files) {
+      uploadFiles(e.target.files, location);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -130,20 +64,13 @@ export default function VideoUploadPage() {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: UploadStatus) => {
     switch (status) {
       case 'uploading':
         return (
           <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 gap-1">
             <Loader className="w-3 h-3 animate-spin" />
             Uploading
-          </Badge>
-        );
-      case 'processing':
-        return (
-          <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 gap-1">
-            <Loader className="w-3 h-3 animate-spin" />
-            Processing
           </Badge>
         );
       case 'completed':
@@ -198,11 +125,10 @@ export default function VideoUploadPage() {
               </p>
             </div>
 
-            {/* Common Locations Suggestions */}
             <div>
               <p className="text-sm font-medium text-gray-700 mb-2">Common Locations:</p>
               <div className="flex flex-wrap gap-2">
-                {['EDSA, Makati', 'BGC, Taguig', 'Commonwealth Ave, QC', 'Mactan-Cebu', 'Davao City'].map(
+                {['National Highway, Rizal Boulevard', 'National Highway, Real Street', 'North National Highway, Barangay Daro', 'North National Highway, Dumaguete-Sibulan Boundary', 'South National Highway, Dumaguete-Bacong Boundary', 'Perdices Street (Downtown Area)'].map(
                   (loc) => (
                     <Button
                       key={loc}
@@ -258,13 +184,13 @@ export default function VideoUploadPage() {
               ref={fileInputRef}
               type="file"
               multiple
-              accept="video/*"
+              accept="video/mp4"
               onChange={handleFileSelect}
               className="hidden"
             />
             <div className="mt-6 text-xs text-gray-500 space-y-1">
-              <p>Supported formats: MP4, MOV, AVI, MKV</p>
-              <p>Maximum file size: 500 MB</p>
+              <p>Supported format: MP4 only</p>
+              <p>Maximum file size: 50 MB</p>
               <p>Video will be analyzed for helmet violations</p>
             </div>
           </div>
@@ -308,63 +234,40 @@ export default function VideoUploadPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">{file.name}</p>
                         <p className="text-sm text-gray-500">{formatFileSize(file.size)}</p>
-                        {file.location && (
-                          <p className="text-xs text-gray-600 mt-1">
-                            <span className="font-medium">Location:</span> {file.location}
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-600 mt-1">
+                          <span className="font-medium">Location:</span> {file.location}
+                        </p>
                       </div>
                     </div>
                     <div className="flex-shrink-0">{getStatusBadge(file.status)}</div>
                   </div>
 
-                  {/* Progress Bar */}
-                  {(file.status === 'uploading' || file.status === 'processing') && (
-                    <div className="mb-3">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-orange-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${file.progress}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">{Math.round(file.progress)}%</p>
+                  {/* Error message */}
+                  {file.status === 'error' && file.errorMessage && (
+                    <div className="bg-red-50 rounded-lg p-3 mb-3">
+                      <p className="text-sm text-red-800">{file.errorMessage}</p>
                     </div>
                   )}
 
-                  {/* Results */}
-                  {file.status === 'completed' && file.violations !== undefined && (
+                  {/* Result after successful upload */}
+                  {file.status === 'completed' && (
                     <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                      <p className="text-sm">
-                        <span className="font-medium text-gray-900">{file.violations}</span>
-                        <span className="text-gray-600"> violation(s) detected</span>
+                      <p className="text-sm text-gray-700">
+                        Video queued for processing. Violations will appear in the Tickets table once analysis completes.
                       </p>
                     </div>
                   )}
 
-                  {/* Action Buttons */}
                   <div className="flex gap-2">
                     {file.status === 'completed' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-blue-600 border-blue-200"
-                        >
-                          Review
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-green-600 border-green-200"
-                        >
-                          Create Tickets
-                        </Button>
-                      </>
+                      <Button variant="outline" size="sm" className="text-blue-600 border-blue-200">
+                        Review
+                      </Button>
                     )}
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleRemoveFile(file.id)}
+                      onClick={() => removeFile(file.id)}
                       className="text-red-600 border-red-200 ml-auto"
                     >
                       Remove
