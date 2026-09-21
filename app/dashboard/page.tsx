@@ -28,10 +28,23 @@ import {
   Clock,
   TrendingUp,
 } from 'lucide-react';
+import { useDashboardData } from '../hooks/useDashboard';
+import { Spinner } from '../../components/ui/spinner';
+import { ErrorMessage } from '../../components/ui/errorMessage';
+
 
 const COLORS = ['#ea580c', '#eab308', '#6b7280', '#dc2626'];
 
 export default function DashboardPage() {
+  const { status, data, error, refetch } = useDashboardData();
+  console.log("Data: ", data)
+  const pieData = Object.entries(data?.pie_chart ?? 0).map(([name, value]) => ({
+    name,
+    value,
+  }));
+  if (status === "loading") return <Spinner />;
+  if (status === "error") return <ErrorMessage message={error.message} />;
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -49,7 +62,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Violations</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {dashboardStats.totalViolations}
+                  {data.total_violations}
                 </p>
               </div>
               <div className="p-2 bg-orange-100 rounded-lg">
@@ -66,7 +79,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Today's Violations</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {dashboardStats.todayViolations}
+                  {data.violations_today}
                 </p>
               </div>
               <div className="p-2 bg-yellow-100 rounded-lg">
@@ -83,7 +96,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Tickets Issued</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {dashboardStats.ticketsIssued}
+                  {data.tickets_issued}
                 </p>
               </div>
               <div className="p-2 bg-green-100 rounded-lg">
@@ -100,7 +113,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending Review</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {dashboardStats.pendingReview}
+                  {data.tickets_pending}
                 </p>
               </div>
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -121,7 +134,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={violationsTrendData}>
+              <LineChart data={data.trend_analysis}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -162,17 +175,17 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={violationStatusData}
+                  data={pieData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
                   label={({ name, value }) => `${name}: ${value}`}
                   outerRadius={80}
                   fill="#8884d8"
-                  dataKey="count"
+                  dataKey="value"
                 >
-                  {violationStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${entry.name}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -190,7 +203,7 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={violationsByLocationData}>
+            <BarChart data={data.location_analysis}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="location" />
               <YAxis />

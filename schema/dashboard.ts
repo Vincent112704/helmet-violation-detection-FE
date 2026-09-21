@@ -16,7 +16,7 @@ import { z } from "zod";
 
 
 const trendPointSchema = z.object({
-    date: z.date(),
+    happen: z.coerce.date(),
     violations: z.number(),
 });
 
