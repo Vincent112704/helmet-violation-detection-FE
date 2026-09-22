@@ -1,104 +1,131 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { Session, User } from '@supabase/supabase-js';
+import { supabase_client } from '../client/supabase_client';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'officer' | 'supervisor';
-}
+// Matches what the `personnel` insert trigger expects from raw_user_meta_data
+export type SignupMetadata = {
+  display_name: string;
+  role: string;
+};
 
 interface AuthContextType {
   user: User | null;
-  isAuthenticated: boolean;
+  session: Session | null;
+  token: string | null; // current bearer access token, kept in sync with the session
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => void;
+  signup: (
+    email: string,
+    password: string,
+    metadata: SignupMetadata
+  ) => Promise<{ requiresEmailConfirmation: boolean }>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+// Separate key so any of your own fetch() calls can read the token
+// without reaching back into Supabase's internal storage format.
+const TOKEN_STORAGE_KEY = 'ts_auth_token';
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize from localStorage on mount
-  useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      }
-    } catch (error) {
-      console.error('[v0] Failed to parse stored user:', error);
-      localStorage.removeItem('user');
-    } finally {
-      setIsLoading(false);
+  const persistToken = (accessToken: string | null) => {
+    setToken(accessToken);
+    if (typeof window === 'undefined') return;
+    if (accessToken) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
+    } else {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
     }
+  };
+
+  useEffect(() => {
+    // Hydrate from whatever Supabase already persisted (e.g. after a refresh)
+    supabase_client.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      persistToken(session?.access_token ?? null);
+      setIsLoading(false);
+    });
+
+    // Keep everything in sync on sign-in, sign-out, and token refresh
+    const {
+      data: { subscription },
+    } = supabase_client.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      persistToken(session?.access_token ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Mock authentication - in production, call your FastAPI backend
-    if (email === 'demo@traffic.gov.ph' && password === 'demo123') {
-      const mockUser: User = {
-        id: '1',
-        email,
-        name: 'Officer Garcia',
-        role: 'officer',
-      };
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-    } else if (email === 'supervisor@traffic.gov.ph' && password === 'demo123') {
-      const mockUser: User = {
-        id: '2',
-        email,
-        name: 'Supervisor Santos',
-        role: 'supervisor',
-      };
-      setUser(mockUser);
-      setIsAuthenticated(true);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-    } else {
-      throw new Error('Invalid credentials');
-    }
-  };
-
-  const signup = async (email: string, password: string, name: string) => {
-    // Mock signup - in production, call your FastAPI backend
-    const mockUser: User = {
-      id: String(Date.now()),
+    const { data, error } = await supabase_client.auth.signInWithPassword({
       email,
-      name,
-      role: 'officer',
-    };
-    setUser(mockUser);
-    setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(mockUser));
+      password,
+    });
+    if (error) throw new Error(error.message);
+    persistToken(data.session?.access_token ?? null);
   };
 
-  const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('user');
+  const signup = async (
+    email: string,
+    password: string,
+    metadata: SignupMetadata
+  ) => {
+    const { data, error } = await supabase_client.auth.signUp({
+      email,
+      password,
+      options: {
+        // Lands in NEW.raw_user_meta_data for your `personnel` insert trigger
+        data: {
+          display_name: metadata.display_name,
+          role: metadata.role,
+        },
+      },
+    });
+    if (error) throw new Error(error.message);
+
+    // If email confirmation is enabled in your Supabase auth settings,
+    // signUp succeeds but returns no session/token until the user confirms.
+    if (data.session) {
+      persistToken(data.session.access_token);
+      return { requiresEmailConfirmation: false };
+    }
+    return { requiresEmailConfirmation: true };
+  };
+
+  const logout = async () => {
+    const { error } = await supabase_client.auth.signOut();
+    if (error) throw new Error(error.message);
+    persistToken(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, signup, logout }}>
+    <AuthContext.Provider
+      value={{ user, session, token, isLoading, login, signup, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
 }

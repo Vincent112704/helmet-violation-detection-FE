@@ -2,26 +2,35 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { Shield, AlertCircle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '../../lib/auth-context';
+
+const ROLE_OPTIONS = [
+  { value: 'officer', label: 'Officer' },
+  { value: 'admin', label: 'Admin' },
+];
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
-    name: '',
+    displayName: '',
     email: '',
     password: '',
     confirmPassword: '',
+    role: ROLE_OPTIONS[0].value,
   });
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signup } = useAuth();
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -29,9 +38,10 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setNotice('');
 
     // Validation
-    if (!formData.name.trim()) {
+    if (!formData.displayName.trim()) {
       setError('Full name is required');
       return;
     }
@@ -47,12 +57,28 @@ export default function SignupPage() {
       setError('Passwords do not match');
       return;
     }
+    if (!formData.role) {
+      setError('Role is required');
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      await signup(formData.email, formData.password, formData.name);
-      router.push('/dashboard');
+      const { requiresEmailConfirmation } = await signup(
+        formData.email,
+        formData.password,
+        {
+          display_name: formData.displayName,
+          role: formData.role,
+        }
+      );
+
+      if (requiresEmailConfirmation) {
+        setNotice('Account created. Check your email to confirm before logging in.');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     } finally {
@@ -85,9 +111,9 @@ export default function SignupPage() {
                 <label className="text-sm font-medium text-gray-700">Full Name</label>
                 <Input
                   type="text"
-                  name="name"
+                  name="displayName"
                   placeholder="Enter your full name"
-                  value={formData.name}
+                  value={formData.displayName}
                   onChange={handleChange}
                   disabled={isLoading}
                 />
@@ -103,6 +129,23 @@ export default function SignupPage() {
                   onChange={handleChange}
                   disabled={isLoading}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Role</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {ROLE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -133,6 +176,12 @@ export default function SignupPage() {
                 <div className="flex gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+
+              {notice && (
+                <div className="flex gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-700">{notice}</p>
                 </div>
               )}
 
