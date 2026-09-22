@@ -17,12 +17,6 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  dashboardStats,
-  violationsTrendData,
-  violationsByLocationData,
-  violationStatusData,
-} from '@/lib/mock-data';
-import {
   AlertTriangle,
   CheckCircle,
   Clock,
@@ -37,7 +31,7 @@ const COLORS = ['#ea580c', '#eab308', '#6b7280', '#dc2626'];
 
 export default function DashboardPage() {
   const { status, data, error, refetch } = useDashboardData();
-  console.log("Data: ", data)
+  
   const pieData = Object.entries(data?.pie_chart ?? 0).map(([name, value]) => ({
     name,
     value,

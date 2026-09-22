@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     metadata: SignupMetadata
   ) => {
-    console.log(metadata.user_role)
+  
     const { data, error } = await supabase_client.auth.signUp({
       email,
       password,
@@ -100,8 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     });
-    console.log(error)
-    console.log(data)
+    
     if (error) throw new Error(error.message);
 
     // If email confirmation is enabled in your Supabase auth settings,
