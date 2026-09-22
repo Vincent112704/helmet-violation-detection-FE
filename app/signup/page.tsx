@@ -11,7 +11,7 @@ import { useAuth } from '../../lib/auth-context';
 
 const ROLE_OPTIONS = [
   { value: 'officer', label: 'Officer' },
-  { value: 'admin', label: 'Admin' },
+  { value: 'supervisor', label: 'Supervisor' },
 ];
 
 export default function SignupPage() {
@@ -20,7 +20,7 @@ export default function SignupPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: ROLE_OPTIONS[0].value,
+    user_role: ROLE_OPTIONS[0].value,
   });
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -57,7 +57,7 @@ export default function SignupPage() {
       setError('Passwords do not match');
       return;
     }
-    if (!formData.role) {
+    if (!formData.user_role) {
       setError('Role is required');
       return;
     }
@@ -70,7 +70,7 @@ export default function SignupPage() {
         formData.password,
         {
           display_name: formData.displayName,
-          role: formData.role,
+          user_role: formData.user_role,
         }
       );
 
@@ -135,7 +135,7 @@ export default function SignupPage() {
                 <label className="text-sm font-medium text-gray-700">Role</label>
                 <select
                   name="role"
-                  value={formData.role}
+                  value={formData.user_role}
                   onChange={handleChange}
                   disabled={isLoading}
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"

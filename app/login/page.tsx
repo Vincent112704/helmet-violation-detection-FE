@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth } from '../../lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Shield } from 'lucide-react';
 import Link from 'next/link';
+import { success } from 'zod';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -23,7 +24,10 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      
+      const response = await login(email, password);
+      console.log(response)
+      console.log("success")
       router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -90,23 +94,6 @@ export default function LoginPage() {
                 {isLoading ? 'Logging in...' : 'Login'}
               </Button>
             </form>
-
-            {/* Demo Credentials */}
-            <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Demo Credentials</p>
-              <div className="space-y-2 text-xs bg-blue-50 p-3 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">Officer Account:</p>
-                  <p className="text-gray-600">Email: demo@traffic.gov.ph</p>
-                  <p className="text-gray-600">Password: demo123</p>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">Supervisor Account:</p>
-                  <p className="text-gray-600">Email: supervisor@traffic.gov.ph</p>
-                  <p className="text-gray-600">Password: demo123</p>
-                </div>
-              </div>
-            </div>
 
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-600">

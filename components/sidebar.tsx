@@ -21,6 +21,7 @@ export function Sidebar() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  console.log("user: ", user)
 
   const handleLogout = () => {
     logout();
@@ -70,7 +71,7 @@ export function Sidebar() {
           {user && (
             <div className="mb-6 p-3 bg-gray-50 rounded-lg border border-gray-100">
               <p className="text-xs font-semibold text-gray-500 uppercase">Logged in as</p>
-              <p className="font-medium text-gray-900">{user.name}</p>
+              <p className="font-medium text-gray-900">{user.user_metadata.display_name}</p>
               <p className="text-xs text-gray-500 capitalize">{user.role}</p>
             </div>
           )}

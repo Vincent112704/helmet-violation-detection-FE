@@ -13,7 +13,7 @@ import { supabase_client } from '../client/supabase_client';
 // Matches what the `personnel` insert trigger expects from raw_user_meta_data
 export type SignupMetadata = {
   display_name: string;
-  role: string;
+  user_role: string;
 };
 
 interface AuthContextType {
@@ -21,6 +21,7 @@ interface AuthContextType {
   session: Session | null;
   token: string | null; // current bearer access token, kept in sync with the session
   isLoading: boolean;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (
     email: string,
@@ -87,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     metadata: SignupMetadata
   ) => {
+    console.log(metadata.user_role)
     const { data, error } = await supabase_client.auth.signUp({
       email,
       password,
@@ -94,10 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Lands in NEW.raw_user_meta_data for your `personnel` insert trigger
         data: {
           display_name: metadata.display_name,
-          role: metadata.role,
+          role: metadata.user_role,
         },
       },
     });
+    console.log(error)
+    console.log(data)
     if (error) throw new Error(error.message);
 
     // If email confirmation is enabled in your Supabase auth settings,
@@ -117,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, token, isLoading, login, signup, logout }}
+      value={{ user, session, token, isLoading, isAuthenticated: !!session ,login, signup, logout }}
     >
       {children}
     </AuthContext.Provider>
