@@ -79,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     });
+    console.log("Auth context: ", data)
     if (error) throw new Error(error.message);
     persistToken(data.session?.access_token ?? null);
   };

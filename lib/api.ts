@@ -64,11 +64,13 @@ export async function fetchApi<TResponse = unknown>(
   headers?: Record<string, string>
 ): Promise<TResponse> {
   const { payload, contentType } = serializeBody(body);
+  const token = localStorage.getItem('ts_auth_token')
 
   const response = await fetch(url, {
     method,
     headers: {
       ...(contentType ? { "Content-Type": contentType } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers, // caller-supplied headers can still override
     },
     body: payload,
