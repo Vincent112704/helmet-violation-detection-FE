@@ -4,7 +4,7 @@ import { fetchApi } from "../../lib/api";
 export const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 export const ACCEPTED_VIDEO_TYPE = "video/mp4";
 const DEV_MODE = 'http://localhost:8000';
-const PROD_MODE = 'http://146.190.106.162'
+const PROD_MODE = 'https://traffic-shield-api.sirenscan.online'
 
 export class VideoValidationError extends Error {}
 
