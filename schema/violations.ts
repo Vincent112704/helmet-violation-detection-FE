@@ -41,3 +41,4 @@ export type Ticket = z.infer<typeof TicketSchema>;
 export type PaginatedTickets = z.infer<typeof PaginatedTicketsSchema>;
 export type TicketTableResponse = z.infer<typeof TicketTableResponseSchema>;
 export type UpdateTicketStatusRequest = z.infer<typeof UpdateTicketStatusRequestSchema>;
+export type UUID = z.infer<typeof UUIDSchema>

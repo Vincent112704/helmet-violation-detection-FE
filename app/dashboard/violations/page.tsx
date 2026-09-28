@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useTickets } from '../../hooks/useTicket';
+import { ViolationDetailPanel } from '../../../components/ViolationsPanel'
 
 
 type SortField = 'timestamp' | 'status' | 'plate_number';
@@ -309,29 +310,23 @@ export default function ViolationsPage() {
 
       {/* Detail panel */}
       {selectedViolation && (
-        <Card className="border-0 shadow bg-blue-50 border-l-4 border-blue-600">
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-2">Selected for review:</p>
-                <p className="text-lg font-semibold text-gray-900">
-                  {selectedViolation.plate_number ?? '—'}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">{selectedViolation.location}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(selectedViolation.timestamp).toLocaleString()}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedViolation(null)}
-              >
-                Close
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <ViolationDetailPanel
+          ticket={selectedViolation}
+          onClose={() => setSelectedViolation(null)}
+          onUpdated={(updated) => {
+            setSelectedViolation(updated); // selectedViolation is a copy, so refresh it too
+            refetch();
+          }}
+          onDeleted={() => {
+            setSelectedViolation(null);
+            // If that was the last row on this page, step back so the table isn't empty
+            if (tickets.length === 1 && page > 0) {
+              setPage(page - 1); // useTickets refetches automatically when page changes
+            } else {
+              refetch();
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import { type TicketTableResponse, TicketTableResponseSchema } from '../../schema/violations';
+import { type TicketTableResponse, TicketTableResponseSchema, type UUID } from '../../schema/violations';
 import { fetchApi } from '../api';
 
 
@@ -20,4 +20,43 @@ export async function getViolationsTable(
     'GET'
   );
   return TicketTableResponseSchema.parse(response);
+}
+
+
+export async function patchViolation(
+  location: string,
+  status: string,
+  plate_number: string,
+  ticket_id: UUID
+): Promise<void> {
+  const params = new URLSearchParams({
+    ticket_id: String(ticket_id)
+  });
+
+  await fetchApi(
+    `${DEV_MODE}/api/table/tickets/violation?${params.toString()}`,
+    'PATCH',
+    {location: location,
+      status: status,
+      plate_number: plate_number
+    } 
+  )
+
+  return 
+}
+
+
+export async function deleteViolation(
+  ticket_id: UUID
+): Promise<void>{
+  const params = new URLSearchParams({
+    ticket_id: String(ticket_id)
+  })
+
+  await fetchApi(
+    `${DEV_MODE}/api/table/tickets/violation?${params.toString()}`,
+    'DELETE'
+    )
+
+  return 
 }

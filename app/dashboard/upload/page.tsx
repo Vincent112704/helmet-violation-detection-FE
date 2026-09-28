@@ -259,11 +259,6 @@ export default function VideoUploadPage() {
                   )}
 
                   <div className="flex gap-2">
-                    {file.status === 'completed' && (
-                      <Button variant="outline" size="sm" className="text-blue-600 border-blue-200">
-                        Review
-                      </Button>
-                    )}
                     <Button
                       variant="outline"
                       size="sm"
