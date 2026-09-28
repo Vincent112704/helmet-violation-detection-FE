@@ -3,7 +3,7 @@ import { fetchApi } from '../api';
 
 
 const DEV_MODE = 'http://localhost:8000'
-
+const PROD_MODE = 'http://146.190.106.162'
 
 
 export async function getViolationsTable(
@@ -16,7 +16,7 @@ export async function getViolationsTable(
   });
 
   const response = await fetchApi(
-    `${DEV_MODE}/api/table/tickets?${params.toString()}`,
+    `${PROD_MODE}/api/table/tickets?${params.toString()}`,
     'GET'
   );
   return TicketTableResponseSchema.parse(response);
@@ -34,7 +34,7 @@ export async function patchViolation(
   });
 
   await fetchApi(
-    `${DEV_MODE}/api/table/tickets/violation?${params.toString()}`,
+    `${PROD_MODE}/api/table/tickets/violation?${params.toString()}`,
     'PATCH',
     {location: location,
       status: status,
@@ -54,7 +54,7 @@ export async function deleteViolation(
   })
 
   await fetchApi(
-    `${DEV_MODE}/api/table/tickets/violation?${params.toString()}`,
+    `${PROD_MODE}/api/table/tickets/violation?${params.toString()}`,
     'DELETE'
     )
 

@@ -4,7 +4,7 @@ import { fetchApi } from "../../lib/api";
 export const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 export const ACCEPTED_VIDEO_TYPE = "video/mp4";
 const DEV_MODE = 'http://localhost:8000';
-
+const PROD_MODE = 'http://146.190.106.162'
 
 export class VideoValidationError extends Error {}
 
@@ -30,7 +30,7 @@ export async function uploadViolationVideo(
   formData.append("video_file", file); // must match FastAPI's `video_file` param name
   formData.append("location", location); // read server-side via request.form()
 
-  await fetchApi(`${DEV_MODE}/api/upload/`, "POST", formData);
+  await fetchApi(`${PROD_MODE}/api/upload/`, "POST", formData);
   // Fire-and-forget from the client's perspective — backend processes
   // in a background task and returns nothing meaningful to parse.
 }
